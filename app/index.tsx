@@ -4,17 +4,58 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Octicons from '@expo/vector-icons/Octicons';
 
 import { data } from "@/data/todos";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemeContext } from "@/context/ThemeContext";
+import Animated, {LinearTransition} from "react-native-reanimated";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 export default function Index() {
   const {colorScheme, setColorScheme, theme} = useContext(ThemeContext)
 
   const styles = createStyles(theme)
 
-  const [todos, setTodos] = useState(data)
+  const [todos, setTodos] = useState<{id: number
+    title: string
+    completed: boolean}[]>([])
   const [newTodo, setNewTodo] = useState<string >("")
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const jsonData = await AsyncStorage.getItem("TodoApp")
+
+        const storageTodos: { id: number
+          title: string
+          completed: boolean}[] = jsonData !== null ? JSON.parse(jsonData) : null
+
+          if (storageTodos && storageTodos.length) {
+            setTodos(storageTodos.sort((a, b) => b.id - a.id))
+          } else {
+            setTodos(data.sort((a, b) => b.id - a.id))
+          }
+      } catch (error) {
+        
+      }
+    }
+
+    fetchData()
+  }, [data])
+
+  useEffect(() => {
+      const storeData = async () => {
+        try {
+          const jsonValue = JSON.stringify(todos)
+
+          await AsyncStorage.setItem("TodoApp", jsonValue)
+        } catch (error) {
+          console.log(error)
+        }
+      }
+
+      storeData()
+  }, [todos])
 
   const deleteTodos = (id: number) => {
     let temp = todos.filter((item) => item.id !== id);
@@ -38,11 +79,11 @@ export default function Index() {
   const addNewTask = () => {
     if(newTodo.length < 1) return
 
-    setTodos(() => [{
-      completed: false,
-      id: todos.length + 1,
-      title: newTodo
-    }, ...todos])
+    if (newTodo.trim()) {
+      const newId = todos.length > 0 ? todos[0].id + 1 : 1;
+      setTodos([{ id: newId, title: newTodo, completed: false }, ...todos])
+      setNewTodo('')
+    }
   }
 
   const todosHeader = <View style={styles.header}>
@@ -78,11 +119,13 @@ export default function Index() {
           height: "100%",
           backgroundColor: theme?.background,
         }}>
-          <FlatList
+          <Animated.FlatList
             data={todos}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.contentContainer}
             ListHeaderComponent={todosHeader}
+            itemLayoutAnimation={LinearTransition}
+            keyboardDismissMode={"on-drag"}
             renderItem={({ item}) => <View style={styles.todoContainer}
             >
                <Text style={[styles.text,
