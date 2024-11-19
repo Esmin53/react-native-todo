@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemeContext } from "@/context/ThemeContext";
 import Animated, {LinearTransition} from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Link } from "expo-router";
 
 
 export default function Index() {
@@ -128,9 +129,17 @@ export default function Index() {
             keyboardDismissMode={"on-drag"}
             renderItem={({ item}) => <View style={styles.todoContainer}
             >
-               <Text style={[styles.text,
+               <Link href={{
+                //@ts-ignore
+                pathname: "/todos/[id]",
+                params: {
+                  id: item.id
+                }
+               }} style={{flex: 1, height: "100%", textAlignVertical: "center"}}>
+               <Text style={[styles.text, {marginVertical: "auto"},
                 item.completed ? styles.completedTask : {}
                ]}>{item.title}</Text>
+               </Link>
                <View style={styles.buttonContainer}>
                   <Pressable style={styles.button} onTouchStart={() => completeTask(item.id)}>
                     {
